@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    width: 800px;
+    height: 650px;
+    overflow: hidden;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  #info-card {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 20px 8px 20px;
+    height: 120px;
+    gap: 14px;
+  }
+  #avatar-wrap {
+    flex-shrink: 0;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #FB7299;
+    box-shadow: 0 2px 12px rgba(251, 114, 153, 0.3);
+    background: #2a2a3e;
+    margin-top: 2px;
+  }
+  #avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  #avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #666;
+    background: #2a2a3e;
+  }
+  #info-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 72px;
+  }
+  #info-nickname {
+    font-size: 20px;
+    font-weight: bold;
+    color: #FB7299;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #info-uid {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 2px;
+  }
+  #info-sign {
+    font-size: 11px;
+    color: #777;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+    max-width: 500px;
+    word-break: break-all;
+  }
+  #info-sign.hidden {
+    display: none;
+  }
+  #info-stats {
+    display: flex;
+    gap: 18px;
+    margin-top: 2px;
+  }
+  .stat-item {
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: #666;
+  }
+  .stat-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #e0e0e0;
+  }
+  .stat-value.positive {
+    color: #4FC3F7;
+  }
+  .stat-value.negative {
+    color: #FF6B6B;
+  }
+  #chart {
+    width: 800px;
+    height: 522px;
+  }
+</style>
+</head>
+<body>
+<div id="info-card">
+  <div id="avatar-wrap">
+    <img id="avatar-img" src="{{FACE_BASE64}}" style="display:none" onload="this.style.display=''" onerror="this.style.display='none';document.getElementById('avatar-placeholder').style.display='flex'" />
+    <div id="avatar-placeholder">👤</div>
+  </div>
+  <div id="info-text">
+    <div id="info-nickname">{{NICKNAME}}</div>
+    <div id="info-uid">UID: {{UID}}</div>
+    <div id="info-sign" class="{{SIGN_HIDDEN}}">{{SIGN_TEXT}}</div>
+    <div id="info-stats">
+      <div class="stat-item">
+        <div class="stat-label">当前粉丝</div>
+        <div class="stat-value">{{CURRENT_FANS}}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">区间增长</div>
+        <div class="stat-value {{CHANGE_CLASS}}">{{CHANGE_VAL}} ({{CHANGE_PCT}})</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">日均增长</div>
+        <div class="stat-value {{DAILY_CLASS}}">{{DAILY_AVG}}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="chart"></div>
+<script src="{{ECHARTS_PATH}}"></script>
+<script>
+(function() {
+  console.log('ECharts Loaded:', typeof echarts);
+  console.log('chartDom:', document.getElementById('chart'));
+
+  var chartDom = document.getElementById('chart');
+  var chart = echarts.init(chartDom, 'dark');
+
+  var timestamps = {{TIMESTAMPS}};
+  var fansCounts = {{FANS_COUNTS}};
+  var nickname = '{{NICKNAME}}';
+  var uid = '{{UID}}';
+  var rangeDays = {{RANGE_DAYS}};
+  var yMin = {{Y_MIN}};
+  var yMax = {{Y_MAX}};
+  var yInterval = {{Y_INTERVAL}};
+  var dataSpanMs = {{DATA_SPAN_MS}};
+  var isHighPrecision = {{IS_HIGH_PRECISION}};
+  var subtitleText = '{{SUBTITLE_TEXT}}';
+  var milestoneTitle = '{{MILESTONE_TITLE}}';
+
+  var avatarImg = document.getElementById('avatar-img');
+  var avatarPlaceholder = document.getElementById('avatar-placeholder');
+  if (avatarImg.src && avatarImg.src.length > 0 && avatarImg.src !== window.location.href) {
+    avatarImg.style.display = '';
+    avatarPlaceholder.style.display = 'none';
+  } else {
+    avatarImg.style.display = 'none';
+    avatarPlaceholder.style.display = 'flex';
+  }
+
+  var chartData = [];
+  for (var i = 0; i < timestamps.length; i++) {
+    chartData.push([new Date(timestamps[i]), fansCounts[i]]);
+  }
+
+  var showSymbol = chartData.length <= 30;
+  var isSmooth = true;
+
+  var maxVal = -Infinity;
+  var minVal = Infinity;
+  var maxIdx = -1;
+  var minIdx = -1;
+  for (var i = 0; i < fansCounts.length; i++) {
+    if (fansCounts[i] > maxVal) { maxVal = fansCounts[i]; maxIdx = i; }
+    if (fansCounts[i] < minVal) { minVal = fansCounts[i]; minIdx = i; }
+  }
+
+  function formatFullTime(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0') + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' +
+      String(d.getMinutes()).padStart(2, '0');
+  }
+
+  function formatAxisLabel(value) {
+    var d = new Date(value);
+    var spanHours = dataSpanMs / (1000 * 60 * 60);
+    if (spanHours <= 24) {
+      return String(d.getHours()).padStart(2, '0') + ':' +
+             String(d.getMinutes()).padStart(2, '0');
+    } else if (spanHours <= 168) {
+      return String(d.getMonth() + 1).padStart(2, '0') + '-' +
+             String(d.getDate()).padStart(2, '0') + ' ' +
+             String(d.getHours()).padStart(2, '0');
+    } else if (spanHours <= 2160) {
+      return String(d.getMonth() + 1).padStart(2, '0') + '-' +
+             String(d.getDate()).padStart(2, '0');
+    } else if (spanHours <= 8760) {
+      return d.getFullYear() + '-' +
+             String(d.getMonth() + 1).padStart(2, '0');
+    } else {
+      return String(d.getFullYear());
+    }
+  }
+
+  function formatTooltipValue(val) {
+    return val.toLocaleString();
+  }
+
+  function formatYAxisLabel(value) {
+    if (isHighPrecision) {
+      return value.toLocaleString();
+    }
+    if (value >= 100000000) {
+      return (value / 100000000).toFixed(3).replace(/\.?0+$/, '') + '亿';
+    }
+    if (value >= 10000) {
+      return (value / 10000).toFixed(3).replace(/\.?0+$/, '') + '万';
+    }
+    return value;
+  }
+
+  var markPointData = [];
+  if (maxIdx >= 0) {
+    markPointData.push({
+      name: '最大值',
+      coord: [new Date(timestamps[maxIdx]), fansCounts[maxIdx]],
+      value: '▲' + fansCounts[maxIdx].toLocaleString(),
+      symbol: 'pin',
+      symbolSize: 40,
+      symbolOffset: [0, -15],
+      itemStyle: { color: '#FB7299' },
+      label: {
+        show: true,
+        position: 'top',
+        distance: 8,
+        color: '#FB7299',
+        fontSize: 12,
+        fontWeight: 'bold',
+        formatter: '▲{c}'
+      }
+    });
+  }
+  if (minIdx >= 0 && minIdx !== maxIdx) {
+    markPointData.push({
+      name: '最小值',
+      coord: [new Date(timestamps[minIdx]), fansCounts[minIdx]],
+      value: '▼' + fansCounts[minIdx].toLocaleString(),
+      symbol: 'pin',
+      symbolSize: 40,
+      symbolOffset: [0, 15],
+      itemStyle: { color: '#4FC3F7' },
+      label: {
+        show: true,
+        position: 'bottom',
+        distance: 8,
+        color: '#4FC3F7',
+        fontSize: 12,
+        fontWeight: 'bold',
+        formatter: '▼{c}'
+      }
+    });
+  }
+
+  var titleText = nickname + ' 粉丝变化趋势';
+  if (milestoneTitle) {
+    titleText = milestoneTitle;
+  }
+
+  var option = {
+    backgroundColor: '#1a1a2e',
+    title: {
+      text: titleText,
+      subtext: subtitleText,
+      left: 'center',
+      top: 5,
+      textStyle: {
+        color: '#e0e0e0',
+        fontSize: 16,
+        fontWeight: 'bold'
+      },
+      subtextStyle: {
+        color: '#999',
+        fontSize: 10,
+        lineHeight: 14
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(30,30,50,0.95)',
+      borderColor: '#FB7299',
+      borderWidth: 1,
+      textStyle: { color: '#e0e0e0', fontSize: 13 },
+      axisPointer: {
+        type: 'cross',
+        crossStyle: { color: '#666' },
+        label: {
+          backgroundColor: '#333',
+          color: '#FB7299'
+        }
+      },
+      formatter: function(params) {
+        var p = params[0];
+        var dateStr = formatFullTime(p.data[0]);
+        var valStr = formatTooltipValue(p.data[1]);
+        return '<span style="color:#FB7299;font-weight:bold">' + dateStr + '</span><br/>' +
+               '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FB7299;margin-right:6px"></span>' +
+               '粉丝数: <b>' + valStr + '</b>';
+      }
+    },
+    grid: {
+      left: 65,
+      right: 30,
+      top: 55,
+      bottom: 40
+    },
+    xAxis: {
+      type: 'time',
+      axisLine: { lineStyle: { color: '#444' } },
+      axisTick: { lineStyle: { color: '#444' } },
+      axisLabel: {
+        color: '#999',
+        fontSize: 11,
+        formatter: formatAxisLabel
+      },
+      splitLine: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      min: yMin,
+      max: yMax,
+      interval: yInterval,
+      axisLine: { lineStyle: { color: '#444' } },
+      axisTick: { lineStyle: { color: '#444' } },
+      axisLabel: {
+        color: '#999',
+        fontSize: 11,
+        formatter: formatYAxisLabel
+      },
+      splitLine: {
+        lineStyle: { color: '#2a2a3e', type: 'dashed' }
+      }
+    },
+    series: [{
+      data: chartData,
+      type: 'line',
+      smooth: isSmooth,
+      symbol: showSymbol ? 'circle' : 'none',
+      symbolSize: 5,
+      showSymbol: showSymbol,
+      lineStyle: {
+        color: '#FB7299',
+        width: 2
+      },
+      itemStyle: {
+        color: '#FB7299',
+        borderColor: '#fff',
+        borderWidth: 1
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(251, 114, 153, 0.35)' },
+          { offset: 0.5, color: 'rgba(251, 114, 153, 0.12)' },
+          { offset: 1, color: 'rgba(251, 114, 153, 0.02)' }
+        ])
+      },
+      markPoint: {
+        data: markPointData,
+        animation: false
+      },
+      emphasis: {
+        focus: 'series',
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: 'rgba(251, 114, 153, 0.5)'
+        }
+      }
+    }]
+  };
+
+  chart.setOption(option);
+
+  chart.on('finished', function() {
+    document.body.setAttribute('data-rendered', 'true');
+  });
+
+  setTimeout(function() {
+    if (document.body.getAttribute('data-rendered') !== 'true') {
+      document.body.setAttribute('data-rendered', 'true');
+    }
+  }, 3000);
+})();
+</script>
+</body>
+</html>

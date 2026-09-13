@@ -1,0 +1,64 @@
+# BilibiliFansTracker 默认配置
+# 修改后需要重启 Yunzai 生效
+# 警告：请勿把 Cookie / Token 等敏感信息提交到 Git 仓库
+
+# 插件开关
+enabled: true
+
+# 每群最大订阅数量
+maxSubscriptionsPerGroup: 100
+
+# 更新定时任务 Cron 表达式（6 字段：秒 分 时 日 月 周，默认每天 08:00）
+updateCron: "0 0 8 * * *"
+
+# 推送定时任务 Cron 表达式（默认每天 08:05）
+pushCron: "0 5 8 * * *"
+
+# 清理定时任务 Cron 表达式（默认每天 04:00）
+cleanupCron: "0 0 4 * * *"
+
+# 历史数据保留天数
+historyRetentionDays: 365
+
+# 合并转发阈值（本群变化 UP 数 > 该值时使用合并转发，<= 该值逐条发送）
+mergeForwardThreshold: 3
+
+# 默认图表时间范围（天）：7 | 30 | 90 | 180 | 365
+defaultChartRange: 30
+
+# 里程碑提醒开关
+milestoneEnabled: true
+
+# 里程碑阈值（单位：万）
+milestones:
+  - 10
+  - 50
+  - 100
+  - 500
+  - 1000
+
+# API 请求超时（毫秒）
+apiTimeout: 10000
+
+# API 请求重试次数
+apiRetryCount: 3
+
+# User-Agent
+userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+
+# 可选的 B 站 Cookie（留空表示匿名请求）
+# 敏感信息！建议通过 Guoba 面板配置：会写入 data/guoba.config.yaml，该文件已被 .gitignore 忽略
+cookie: ""
+
+# 推送时显示较上次变化
+showLastChange: true
+
+# 推送时显示较7天前变化
+showWeekChange: true
+
+# 调试模式
+debug:
+  enabled: false
+
+# 调试：保留生成的 HTML 文件 (true/false)
+debugKeepHtml: false
