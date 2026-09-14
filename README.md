@@ -1,6 +1,6 @@
 <div align="center">
 
-# BilibiliFansTracker
+# BilibiliFansTracker Plugin
 
 适用于 **TRSS-Yunzai** 的 B 站 UP 主粉丝数追踪插件
 
@@ -55,13 +55,13 @@
 
    ```bash
    cd TRSS-Yunzai/plugins
-   git clone https://github.com/Jerry-c9/bilibiliFansTracker.git bilibiliFansTracker
+   git clone https://github.com/Jerry-c9/bilibiliFansTracker-plugin.git bilibiliFansTracker Plugin
    ```
 
 2. 安装依赖（在插件目录内执行）：
 
    ```bash
-   cd bilibiliFansTracker
+   cd bilibiliFansTracker Plugin
    npm install
    # 或 pnpm install
    ```
@@ -189,7 +189,7 @@
 ## 项目结构
 
 ```text
-bilibiliFansTracker/
+bilibiliFansTracker Plugin/
 ├── index.js                 # 插件入口
 ├── guoba.support.js         # Guoba 配置面板
 ├── apps/                    # 命令处理
