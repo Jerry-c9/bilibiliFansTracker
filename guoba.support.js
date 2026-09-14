@@ -103,10 +103,10 @@ function collectCronField(formData, prefix, defaultCron) {
 export function supportGuoba() {
   return {
     pluginInfo: {
-      name: "bilibiliFansTracker",
+      name: "bilibiliFansTracker-plugin",
       title: "B站粉丝追踪",
       author: ["Jerry_c9"],
-      link: "https://github.com/Jerry-c9/bilibiliFansTracker",
+      link: "https://github.com/Jerry-c9/bilibiliFansTracker-plugin",
       isV3: true,
       isV2: false,
       description: "追踪B站UP主粉丝数量变化，支持订阅推送、历史曲线与数据导出",

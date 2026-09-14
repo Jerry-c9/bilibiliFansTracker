@@ -1,5 +1,5 @@
 {
-  "name": "bilibiliFansTracker",
+  "name": "bilibiliFansTracker-plugin",
   "version": "1.0.0",
   "description": "B站UP主粉丝数追踪插件 - 支持订阅推送、历史曲线与数据导出",
   "main": "index.js",
@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Jerry-c9/bilibiliFansTracker.git"
+    "url": "https://github.com/Jerry-c9/bilibiliFansTracker-plugin.git"
   },
   "keywords": [
     "trss-yunzai",
